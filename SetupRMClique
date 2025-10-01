@@ -206,7 +206,7 @@ version: '3.8'
 
 services:
   pterodactyl-panel:
-    image: pterodactyl/panel:latest
+    image: ghcr.io/pterodactyl/panel:latest
     container_name: pterodactyl-panel
     restart: unless-stopped
     environment:
@@ -269,15 +269,41 @@ networks:
 EOF
 
 # Iniciar o Pterodactyl
+echo -e "$amarelo Iniciando containers...$reset"
 if command -v docker-compose &> /dev/null; then
     docker-compose up -d
+    COMPOSE_EXIT_CODE=$?
 else
     docker compose up -d
+    COMPOSE_EXIT_CODE=$?
 fi
 
-echo ""
-echo -e "$verde Pterodactyl Panel instalado com sucesso!$reset"
-echo -e "$amarelo Acesse: https://${SUBDOMINIO}.${DOMINIO}$reset"
+# Verificar se a instalação foi bem-sucedida
+if [ $COMPOSE_EXIT_CODE -eq 0 ]; then
+    # Aguardar containers iniciarem
+    sleep 10
+    
+    # Verificar se containers estão rodando
+    if docker ps | grep -q "pterodactyl-panel" && docker ps | grep -q "pterodactyl-db" && docker ps | grep -q "pterodactyl-redis"; then
+        echo ""
+        echo -e "$verde Pterodactyl Panel instalado com sucesso!$reset"
+        echo -e "$amarelo Acesse: https://${SUBDOMINIO}$reset"
+        echo ""
+    else
+        echo -e "$vermelho Erro: Containers não iniciaram corretamente!$reset"
+        echo -e "$amarelo Removendo instalação...$reset"
+        docker-compose down -v 2>/dev/null || docker compose down -v 2>/dev/null
+        rm -rf /opt/pterodactyl
+        echo -e "$vermelho Instalação removida devido a erros.$reset"
+    fi
+else
+    echo -e "$vermelho Erro na instalação do Pterodactyl!$reset"
+    echo -e "$amarelo Removendo instalação...$reset"
+    docker-compose down -v 2>/dev/null || docker compose down -v 2>/dev/null
+    rm -rf /opt/pterodactyl
+    echo -e "$vermelho Instalação removida devido a erros.$reset"
+fi
+
 echo ""
 read -p "Pressione Enter para continuar..."
 }
@@ -408,15 +434,41 @@ networks:
 EOF
 
 # Iniciar o PufferPanel
+echo -e "$amarelo Iniciando containers...$reset"
 if command -v docker-compose &> /dev/null; then
     docker-compose up -d
+    COMPOSE_EXIT_CODE=$?
 else
     docker compose up -d
+    COMPOSE_EXIT_CODE=$?
 fi
 
-echo ""
-echo -e "$verde PufferPanel instalado com sucesso!$reset"
-echo -e "$amarelo Acesse: https://${SUBDOMINIO}.${DOMINIO}$reset"
+# Verificar se a instalação foi bem-sucedida
+if [ $COMPOSE_EXIT_CODE -eq 0 ]; then
+    # Aguardar containers iniciarem
+    sleep 10
+    
+    # Verificar se containers estão rodando
+    if docker ps | grep -q "pufferpanel" && docker ps | grep -q "pufferpanel-db" && docker ps | grep -q "pufferpanel-redis"; then
+        echo ""
+        echo -e "$verde PufferPanel instalado com sucesso!$reset"
+        echo -e "$amarelo Acesse: https://${SUBDOMINIO}$reset"
+        echo ""
+    else
+        echo -e "$vermelho Erro: Containers não iniciaram corretamente!$reset"
+        echo -e "$amarelo Removendo instalação...$reset"
+        docker-compose down -v 2>/dev/null || docker compose down -v 2>/dev/null
+        rm -rf /opt/pufferpanel
+        echo -e "$vermelho Instalação removida devido a erros.$reset"
+    fi
+else
+    echo -e "$vermelho Erro na instalação do PufferPanel!$reset"
+    echo -e "$amarelo Removendo instalação...$reset"
+    docker-compose down -v 2>/dev/null || docker compose down -v 2>/dev/null
+    rm -rf /opt/pufferpanel
+    echo -e "$vermelho Instalação removida devido a erros.$reset"
+fi
+
 echo ""
 read -p "Pressione Enter para continuar..."
 }
@@ -431,6 +483,42 @@ while true; do
 cabecalho
 versao
 echo -e "$branco Escolha uma opção:$reset"
+echo ""
+echo -e "$amarelo [P1]$reset - Página 1 (Opções 1-40)"
+echo -e "$amarelo [P2]$reset - Página 2 (Opções 41-86)"
+echo ""
+echo -e "$amarelo Digite P1, P2 ou o número da opção desejada:$reset"
+read -p "Opção: " opcao
+
+case $opcao in
+P1|p1) menu_pagina1 ;;
+P2|p2) menu_pagina2 ;;
+*) 
+    # Verificar se é um número válido
+    if [[ $opcao =~ ^[0-9]+$ ]]; then
+        if [ $opcao -ge 1 ] && [ $opcao -le 40 ]; then
+            menu_pagina1_opcao $opcao
+        elif [ $opcao -ge 41 ] && [ $opcao -le 86 ]; then
+            menu_pagina2_opcao $opcao
+        else
+            echo -e "$vermelho Opção inválida!$reset"
+            sleep 2
+        fi
+    else
+        echo -e "$vermelho Opção inválida!$reset"
+        sleep 2
+    fi
+    ;;
+esac
+done
+}
+
+# Menu Página 1
+menu_pagina1() {
+while true; do
+cabecalho
+versao
+echo -e "$branco PÁGINA 1 - Opções 1-40:$reset"
 echo ""
 echo -e "$verde [1]$reset - Instalar Docker"
 echo -e "$verde [2]$reset - Instalar Docker Compose"
@@ -472,6 +560,27 @@ echo -e "$verde [37]$reset - Instalar Cron"
 echo -e "$verde [38]$reset - Instalar Logrotate"
 echo -e "$verde [39]$reset - Instalar Fail2ban"
 echo -e "$verde [40]$reset - Instalar UFW"
+echo ""
+echo -e "$amarelo [P2]$reset - Página 2 | $amarelo[0]$reset - Voltar ao menu principal"
+echo ""
+echo -e "$amarelo Digite o número da opção desejada:$reset"
+read -p "Opção: " opcao
+
+case $opcao in
+P2|p2) menu_pagina2 ;;
+0) return ;;
+*) menu_pagina1_opcao $opcao ;;
+esac
+done
+}
+
+# Menu Página 2
+menu_pagina2() {
+while true; do
+cabecalho
+versao
+echo -e "$branco PÁGINA 2 - Opções 41-86:$reset"
+echo ""
 echo -e "$verde [41]$reset - Instalar Iptables"
 echo -e "$verde [42]$reset - Instalar OpenSSL"
 echo -e "$verde [43]$reset - Instalar Certbot"
@@ -517,10 +626,25 @@ echo -e "$verde [82]$reset - Atualizar sistema"
 echo -e "$verde [83]$reset - Limpar sistema"
 echo -e "$verde [84]$reset - Reiniciar sistema"
 echo -e "$verde [85]$reset - Desligar sistema"
-echo -e "$verde [86]$reset - Sair"
+echo -e "$amarelo [87]$reset - Instalar WireGuard VPN"
+echo -e "$verde [88]$reset - Sair"
+echo ""
+echo -e "$amarelo [P1]$reset - Página 1 | $amarelo[0]$reset - Voltar ao menu principal"
 echo ""
 echo -e "$amarelo Digite o número da opção desejada:$reset"
 read -p "Opção: " opcao
+
+case $opcao in
+P1|p1) menu_pagina1 ;;
+0) return ;;
+*) menu_pagina2_opcao $opcao ;;
+esac
+done
+}
+
+# Executar opção da página 1
+menu_pagina1_opcao() {
+opcao=$1
 
 case $opcao in
 1) instalar_docker ;;
@@ -563,6 +687,15 @@ case $opcao in
 38) instalar_logrotate ;;
 39) instalar_fail2ban ;;
 40) instalar_ufw ;;
+*) echo -e "$vermelho Opção inválida!$reset"; sleep 2 ;;
+esac
+}
+
+# Executar opção da página 2
+menu_pagina2_opcao() {
+opcao=$1
+
+case $opcao in
 41) instalar_iptables ;;
 42) instalar_openssl ;;
 43) instalar_certbot ;;
@@ -608,40 +741,708 @@ case $opcao in
 83) limpar_sistema ;;
 84) reiniciar_sistema ;;
 85) desligar_sistema ;;
-86) sair ;;
+87) instalar_wireguard ;;
+88) sair ;;
 *) echo -e "$vermelho Opção inválida!$reset"; sleep 2 ;;
 esac
-done
 }
 
 ## // ## // ## // ## // ## // ## // ## // ## //## // ## // ## // ## // ## // ## // ## // ## // ##
 ## RM CLIQUE ##
 ## // ## // ## // ## // ## // ## // ## // ## //## // ## // ## // ## // ## // ## // ## // ## // ##
 
-# Funções de instalação (implementações básicas)
+# Funções de instalação (copiadas do Orion Design)
 instalar_docker() {
 echo -e "$amarelo Instalando Docker...$reset"
-# Implementar instalação do Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+systemctl start docker
+systemctl enable docker
+usermod -aG docker $USER
+rm get-docker.sh
 echo -e "$verde Docker instalado com sucesso!$reset"
 read -p "Pressione Enter para continuar..."
 }
 
 instalar_docker_compose() {
 echo -e "$amarelo Instalando Docker Compose...$reset"
-# Implementar instalação do Docker Compose
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
 echo -e "$verde Docker Compose instalado com sucesso!$reset"
 read -p "Pressione Enter para continuar..."
 }
 
 instalar_traefik() {
 echo -e "$amarelo Instalando Traefik...$reset"
-# Implementar instalação do Traefik
+docker network create traefik
+mkdir -p /opt/traefik
+cd /opt/traefik
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/traefik.yml:ro
+      - ./acme.json:/acme.json
+    networks:
+      - traefik
+networks:
+  traefik:
+    external: true
+EOF
+cat > traefik.yml << 'EOF'
+api:
+  dashboard: true
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+  file:
+    filename: /traefik.yml
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@example.com
+      storage: /acme.json
+      httpChallenge:
+        entryPoint: web
+EOF
+touch acme.json
+chmod 600 acme.json
+docker-compose up -d
 echo -e "$verde Traefik instalado com sucesso!$reset"
 read -p "Pressione Enter para continuar..."
 }
 
-# Adicionar todas as outras funções de instalação aqui...
-# (Por brevidade, não vou implementar todas, mas o padrão é o mesmo)
+instalar_nginx() {
+echo -e "$amarelo Instalando Nginx...$reset"
+apt update
+apt install -y nginx
+systemctl start nginx
+systemctl enable nginx
+echo -e "$verde Nginx instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_apache() {
+echo -e "$amarelo Instalando Apache...$reset"
+apt update
+apt install -y apache2
+systemctl start apache2
+systemctl enable apache2
+echo -e "$verde Apache instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_mysql() {
+echo -e "$amarelo Instalando MySQL...$reset"
+apt update
+apt install -y mysql-server
+systemctl start mysql
+systemctl enable mysql
+mysql_secure_installation
+echo -e "$verde MySQL instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_postgresql() {
+echo -e "$amarelo Instalando PostgreSQL...$reset"
+apt update
+apt install -y postgresql postgresql-contrib
+systemctl start postgresql
+systemctl enable postgresql
+echo -e "$verde PostgreSQL instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_redis() {
+echo -e "$amarelo Instalando Redis...$reset"
+apt update
+apt install -y redis-server
+systemctl start redis-server
+systemctl enable redis-server
+echo -e "$verde Redis instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_mongodb() {
+echo -e "$amarelo Instalando MongoDB...$reset"
+wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+apt update
+apt install -y mongodb-org
+systemctl start mongod
+systemctl enable mongod
+echo -e "$verde MongoDB instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_nodejs() {
+echo -e "$amarelo Instalando Node.js...$reset"
+curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+apt install -y nodejs
+echo -e "$verde Node.js instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_python() {
+echo -e "$amarelo Instalando Python...$reset"
+apt update
+apt install -y python3 python3-pip python3-venv
+echo -e "$verde Python instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_php() {
+echo -e "$amarelo Instalando PHP...$reset"
+apt update
+apt install -y php php-cli php-fpm php-mysql php-xml php-gd php-curl php-mbstring php-zip
+echo -e "$verde PHP instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_java() {
+echo -e "$amarelo Instalando Java...$reset"
+apt update
+apt install -y openjdk-11-jdk
+echo -e "$verde Java instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_go() {
+echo -e "$amarelo Instalando Go...$reset"
+wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+rm go1.21.0.linux-amd64.tar.gz
+echo -e "$verde Go instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_rust() {
+echo -e "$amarelo Instalando Rust...$reset"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source ~/.cargo/env
+echo -e "$verde Rust instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_git() {
+echo -e "$amarelo Instalando Git...$reset"
+apt update
+apt install -y git
+echo -e "$verde Git instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_curl() {
+echo -e "$amarelo Instalando Curl...$reset"
+apt update
+apt install -y curl
+echo -e "$verde Curl instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_wget() {
+echo -e "$amarelo Instalando Wget...$reset"
+apt update
+apt install -y wget
+echo -e "$verde Wget instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_vim() {
+echo -e "$amarelo Instalando Vim...$reset"
+apt update
+apt install -y vim
+echo -e "$verde Vim instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_nano() {
+echo -e "$amarelo Instalando Nano...$reset"
+apt update
+apt install -y nano
+echo -e "$verde Nano instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_htop() {
+echo -e "$amarelo Instalando Htop...$reset"
+apt update
+apt install -y htop
+echo -e "$verde Htop instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_neofetch() {
+echo -e "$amarelo Instalando Neofetch...$reset"
+apt update
+apt install -y neofetch
+echo -e "$verde Neofetch instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_unzip() {
+echo -e "$amarelo Instalando Unzip...$reset"
+apt update
+apt install -y unzip
+echo -e "$verde Unzip instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_zip() {
+echo -e "$amarelo Instalando Zip...$reset"
+apt update
+apt install -y zip
+echo -e "$verde Zip instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_7zip() {
+echo -e "$amarelo Instalando 7zip...$reset"
+apt update
+apt install -y p7zip-full
+echo -e "$verde 7zip instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_ffmpeg() {
+echo -e "$amarelo Instalando FFmpeg...$reset"
+apt update
+apt install -y ffmpeg
+echo -e "$verde FFmpeg instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_imagemagick() {
+echo -e "$amarelo Instalando ImageMagick...$reset"
+apt update
+apt install -y imagemagick
+echo -e "$verde ImageMagick instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_jq() {
+echo -e "$amarelo Instalando JQ...$reset"
+apt update
+apt install -y jq
+echo -e "$verde JQ instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_yq() {
+echo -e "$amarelo Instalando YQ...$reset"
+wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+chmod +x /usr/bin/yq
+echo -e "$verde YQ instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_httpie() {
+echo -e "$amarelo Instalando HTTPie...$reset"
+apt update
+apt install -y httpie
+echo -e "$verde HTTPie instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_tmux() {
+echo -e "$amarelo Instalando Tmux...$reset"
+apt update
+apt install -y tmux
+echo -e "$verde Tmux instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_screen() {
+echo -e "$amarelo Instalando Screen...$reset"
+apt update
+apt install -y screen
+echo -e "$verde Screen instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_ssh() {
+echo -e "$amarelo Instalando SSH...$reset"
+apt update
+apt install -y openssh-server
+systemctl start ssh
+systemctl enable ssh
+echo -e "$verde SSH instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_ftp() {
+echo -e "$amarelo Instalando FTP...$reset"
+apt update
+apt install -y vsftpd
+systemctl start vsftpd
+systemctl enable vsftpd
+echo -e "$verde FTP instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_sftp() {
+echo -e "$amarelo Instalando SFTP...$reset"
+apt update
+apt install -y openssh-server
+echo -e "$verde SFTP instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_rsync() {
+echo -e "$amarelo Instalando Rsync...$reset"
+apt update
+apt install -y rsync
+echo -e "$verde Rsync instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_cron() {
+echo -e "$amarelo Instalando Cron...$reset"
+apt update
+apt install -y cron
+systemctl start cron
+systemctl enable cron
+echo -e "$verde Cron instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_logrotate() {
+echo -e "$amarelo Instalando Logrotate...$reset"
+apt update
+apt install -y logrotate
+echo -e "$verde Logrotate instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_fail2ban() {
+echo -e "$amarelo Instalando Fail2ban...$reset"
+apt update
+apt install -y fail2ban
+systemctl start fail2ban
+systemctl enable fail2ban
+echo -e "$verde Fail2ban instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_ufw() {
+echo -e "$amarelo Instalando UFW...$reset"
+apt update
+apt install -y ufw
+ufw --force enable
+echo -e "$verde UFW instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_iptables() {
+echo -e "$amarelo Instalando Iptables...$reset"
+apt update
+apt install -y iptables
+echo -e "$verde Iptables instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_openssl() {
+echo -e "$amarelo Instalando OpenSSL...$reset"
+apt update
+apt install -y openssl
+echo -e "$verde OpenSSL instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_certbot() {
+echo -e "$amarelo Instalando Certbot...$reset"
+apt update
+apt install -y certbot python3-certbot-nginx
+echo -e "$verde Certbot instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_letsencrypt() {
+echo -e "$amarelo Instalando Let's Encrypt...$reset"
+apt update
+apt install -y certbot
+echo -e "$verde Let's Encrypt instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_cloudflare() {
+echo -e "$amarelo Instalando Cloudflare...$reset"
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+dpkg -i cloudflared-linux-amd64.deb
+rm cloudflared-linux-amd64.deb
+echo -e "$verde Cloudflare instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_aws_cli() {
+echo -e "$amarelo Instalando AWS CLI...$reset"
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+rm -rf aws awscliv2.zip
+echo -e "$verde AWS CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_azure_cli() {
+echo -e "$amarelo Instalando Azure CLI...$reset"
+curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+echo -e "$verde Azure CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_google_cloud_cli() {
+echo -e "$amarelo Instalando Google Cloud CLI...$reset"
+curl https://sdk.cloud.google.com | bash
+echo -e "$verde Google Cloud CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_digitalocean_cli() {
+echo -e "$amarelo Instalando DigitalOcean CLI...$reset"
+snap install doctl
+echo -e "$verde DigitalOcean CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_linode_cli() {
+echo -e "$amarelo Instalando Linode CLI...$reset"
+pip3 install linode-cli
+echo -e "$verde Linode CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_vultr_cli() {
+echo -e "$amarelo Instalando Vultr CLI...$reset"
+wget https://github.com/vultr/vultr-cli/releases/latest/download/vultr-cli_linux_64-bit.tar.gz
+tar -xzf vultr-cli_linux_64-bit.tar.gz
+mv vultr-cli /usr/local/bin/
+rm vultr-cli_linux_64-bit.tar.gz
+echo -e "$verde Vultr CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_heroku_cli() {
+echo -e "$amarelo Instalando Heroku CLI...$reset"
+curl https://cli-assets.heroku.com/install.sh | sh
+echo -e "$verde Heroku CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_netlify_cli() {
+echo -e "$amarelo Instalando Netlify CLI...$reset"
+npm install -g netlify-cli
+echo -e "$verde Netlify CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_vercel_cli() {
+echo -e "$amarelo Instalando Vercel CLI...$reset"
+npm install -g vercel
+echo -e "$verde Vercel CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_surge_cli() {
+echo -e "$amarelo Instalando Surge CLI...$reset"
+npm install -g surge
+echo -e "$verde Surge CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_now_cli() {
+echo -e "$amarelo Instalando Now CLI...$reset"
+npm install -g now
+echo -e "$verde Now CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_zeit_cli() {
+echo -e "$amarelo Instalando Zeit CLI...$reset"
+npm install -g zeit
+echo -e "$verde Zeit CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_firebase_cli() {
+echo -e "$amarelo Instalando Firebase CLI...$reset"
+npm install -g firebase-tools
+echo -e "$verde Firebase CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_supabase_cli() {
+echo -e "$amarelo Instalando Supabase CLI...$reset"
+npm install -g supabase
+echo -e "$verde Supabase CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_planetscale_cli() {
+echo -e "$amarelo Instalando PlanetScale CLI...$reset"
+npm install -g @planetscale/cli
+echo -e "$verde PlanetScale CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_railway_cli() {
+echo -e "$amarelo Instalando Railway CLI...$reset"
+npm install -g @railway/cli
+echo -e "$verde Railway CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_render_cli() {
+echo -e "$amarelo Instalando Render CLI...$reset"
+npm install -g @render/cli
+echo -e "$verde Render CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_flyio_cli() {
+echo -e "$amarelo Instalando Fly.io CLI...$reset"
+curl -L https://fly.io/install.sh | sh
+echo -e "$verde Fly.io CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_digitalocean_app_platform_cli() {
+echo -e "$amarelo Instalando DigitalOcean App Platform CLI...$reset"
+npm install -g @digitalocean/app-platform-cli
+echo -e "$verde DigitalOcean App Platform CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_aws_amplify_cli() {
+echo -e "$amarelo Instalando AWS Amplify CLI...$reset"
+npm install -g @aws-amplify/cli
+echo -e "$verde AWS Amplify CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_aws_sam_cli() {
+echo -e "$amarelo Instalando AWS SAM CLI...$reset"
+pip3 install aws-sam-cli
+echo -e "$verde AWS SAM CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_aws_cdk_cli() {
+echo -e "$amarelo Instalando AWS CDK CLI...$reset"
+npm install -g aws-cdk
+echo -e "$verde AWS CDK CLI instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_terraform() {
+echo -e "$amarelo Instalando Terraform...$reset"
+wget https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip
+unzip terraform_1.5.0_linux_amd64.zip
+mv terraform /usr/local/bin/
+rm terraform_1.5.0_linux_amd64.zip
+echo -e "$verde Terraform instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_ansible() {
+echo -e "$amarelo Instalando Ansible...$reset"
+apt update
+apt install -y ansible
+echo -e "$verde Ansible instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_vagrant() {
+echo -e "$amarelo Instalando Vagrant...$reset"
+wget https://releases.hashicorp.com/vagrant/2.3.0/vagrant_2.3.0_linux_amd64.zip
+unzip vagrant_2.3.0_linux_amd64.zip
+mv vagrant /usr/local/bin/
+rm vagrant_2.3.0_linux_amd64.zip
+echo -e "$verde Vagrant instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_virtualbox() {
+echo -e "$amarelo Instalando VirtualBox...$reset"
+apt update
+apt install -y virtualbox
+echo -e "$verde VirtualBox instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_vmware() {
+echo -e "$amarelo Instalando VMware...$reset"
+wget https://download3.vmware.com/software/WKST-1700-LX/VMware-Workstation-Full-17.0.0-20800274.x86_64.bundle
+chmod +x VMware-Workstation-Full-17.0.0-20800274.x86_64.bundle
+./VMware-Workstation-Full-17.0.0-20800274.x86_64.bundle
+echo -e "$verde VMware instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_qemu() {
+echo -e "$amarelo Instalando QEMU...$reset"
+apt update
+apt install -y qemu qemu-kvm
+echo -e "$verde QEMU instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_kvm() {
+echo -e "$amarelo Instalando KVM...$reset"
+apt update
+apt install -y qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils
+usermod -aG libvirt $USER
+echo -e "$verde KVM instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_docker_swarm() {
+echo -e "$amarelo Instalando Docker Swarm...$reset"
+docker swarm init
+echo -e "$verde Docker Swarm instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_kubernetes() {
+echo -e "$amarelo Instalando Kubernetes...$reset"
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
+apt update
+apt install -y kubelet kubeadm kubectl
+echo -e "$verde Kubernetes instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_helm() {
+echo -e "$amarelo Instalando Helm...$reset"
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+echo -e "$verde Helm instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
+
+instalar_istio() {
+echo -e "$amarelo Instalando Istio...$reset"
+curl -L https://istio.io/downloadIstio | sh -
+mv istio-*/bin/istioctl /usr/local/bin/
+echo -e "$verde Istio instalado com sucesso!$reset"
+read -p "Pressione Enter para continuar..."
+}
 
 atualizar_sistema() {
 echo -e "$amarelo Atualizando sistema...$reset"
@@ -665,6 +1466,156 @@ reboot
 desligar_sistema() {
 echo -e "$amarelo Desligando sistema...$reset"
 shutdown -h now
+}
+
+# Função para instalar WireGuard (Opção 87)
+instalar_wireguard() {
+cabecalho
+echo -e "$amarelo Instalação do WireGuard VPN$reset"
+echo ""
+
+# Verificar se Docker está instalado
+if ! command -v docker &> /dev/null; then
+    echo -e "$vermelho Docker não está instalado! Instalando Docker primeiro...$reset"
+    echo ""
+    # Instalar Docker
+    apt update
+    apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+    apt update
+    apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    systemctl start docker
+    systemctl enable docker
+    echo -e "$verde Docker instalado com sucesso!$reset"
+    echo ""
+fi
+
+# Verificar se Docker Compose está disponível
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo -e "$amarelo Instalando Docker Compose...$reset"
+    apt install -y docker-compose
+    echo -e "$verde Docker Compose instalado!$reset"
+    echo ""
+fi
+
+# Verificar se Traefik já existe
+if docker network ls | grep -q "traefik"; then
+    echo -e "$verde Traefik já está configurado! Usando rede existente.$reset"
+    TRAEFIK_NETWORK="traefik"
+else
+    echo -e "$amarelo Criando rede do Traefik...$reset"
+    docker network create traefik
+    TRAEFIK_NETWORK="traefik"
+fi
+
+obter_dominio
+obter_subdominio
+
+echo -e "$amarelo Instalando WireGuard VPN...$reset"
+echo ""
+
+# Criar diretório para o WireGuard
+mkdir -p /opt/wireguard
+cd /opt/wireguard
+
+# Gerar chaves
+PRIVATE_KEY=$(wg genkey)
+PUBLIC_KEY=$(echo $PRIVATE_KEY | wg pubkey)
+SERVER_IP="10.0.0.1"
+CLIENT_IP="10.0.0.2"
+
+# Criar docker-compose.yml para WireGuard
+cat > docker-compose.yml << EOF
+version: '3.8'
+
+services:
+  wireguard:
+    image: linuxserver/wireguard:latest
+    container_name: wireguard
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Sao_Paulo
+      - SERVERURL=${SUBDOMINIO}.${DOMINIO}
+      - SERVERPORT=51820
+      - PEERS=1
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.0.0.0
+    volumes:
+      - wireguard-config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      - ${TRAEFIK_NETWORK}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wireguard.rule=Host(\`${SUBDOMINIO}.${DOMINIO}\`)"
+      - "traefik.http.routers.wireguard.tls=true"
+      - "traefik.http.routers.wireguard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wireguard.loadbalancer.server.port=80"
+
+volumes:
+  wireguard-config:
+
+networks:
+  ${TRAEFIK_NETWORK}:
+    external: true
+EOF
+
+# Iniciar o WireGuard
+echo -e "$amarelo Iniciando containers...$reset"
+if command -v docker-compose &> /dev/null; then
+    docker-compose up -d
+    COMPOSE_EXIT_CODE=$?
+else
+    docker compose up -d
+    COMPOSE_EXIT_CODE=$?
+fi
+
+# Verificar se a instalação foi bem-sucedida
+if [ $COMPOSE_EXIT_CODE -eq 0 ]; then
+    # Aguardar containers iniciarem
+    sleep 10
+    
+    # Verificar se containers estão rodando
+    if docker ps | grep -q "wireguard"; then
+        echo ""
+        echo -e "$verde WireGuard VPN instalado com sucesso!$reset"
+        echo -e "$amarelo Acesse: https://${SUBDOMINIO}.${DOMINIO}$reset"
+        echo ""
+        echo -e "$amarelo Configuração do cliente:$reset"
+        echo -e "$branco 1. Baixe o arquivo de configuração do cliente em: /opt/wireguard/wireguard-config/peer1/peer1.conf$reset"
+        echo -e "$branco 2. Importe o arquivo no seu cliente WireGuard$reset"
+        echo -e "$branco 3. Conecte-se à VPN$reset"
+        echo ""
+        echo -e "$amarelo QR Code para configuração móvel:$reset"
+        echo -e "$branco Execute: docker exec wireguard /app/show-peer 1$reset"
+        echo ""
+    else
+        echo -e "$vermelho Erro: Container não iniciou corretamente!$reset"
+        echo -e "$amarelo Removendo instalação...$reset"
+        docker-compose down -v 2>/dev/null || docker compose down -v 2>/dev/null
+        rm -rf /opt/wireguard
+        echo -e "$vermelho Instalação removida devido a erros.$reset"
+    fi
+else
+    echo -e "$vermelho Erro na instalação do WireGuard!$reset"
+    echo -e "$amarelo Removendo instalação...$reset"
+    docker-compose down -v 2>/dev/null || docker compose down -v 2>/dev/null
+    rm -rf /opt/wireguard
+    echo -e "$vermelho Instalação removida devido a erros.$reset"
+fi
+
+echo ""
+read -p "Pressione Enter para continuar..."
 }
 
 sair() {

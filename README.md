@@ -149,6 +149,7 @@ O script principal inclui 86 opções de instalação:
 - **Opção 79**: Remover Docker e sair do swarm
 - **Opção 80**: Instalar Pterodactyl Panel (Gerenciamento de servidores de jogos)
 - **Opção 81**: Instalar PufferPanel (Gerenciamento de servidores)
+- **Opção 87**: Instalar WireGuard VPN (VPN segura com Traefik)
 
 ## 🔒 Segurança
 

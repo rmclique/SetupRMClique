@@ -485,42 +485,6 @@ cabecalho
 versao
 echo -e "$branco Escolha uma opção:$reset"
 echo ""
-echo -e "$amarelo [P1]$reset - Página 1 (Opções 1-40)"
-echo -e "$amarelo [P2]$reset - Página 2 (Opções 41-88)"
-echo ""
-echo -e "$amarelo Digite P1, P2 ou o número da opção desejada:$reset"
-read -p "Opção: " opcao
-
-case $opcao in
-P1|p1) menu_pagina1 ;;
-P2|p2) menu_pagina2 ;;
-*) 
-    # Verificar se é um número válido
-    if [[ $opcao =~ ^[0-9]+$ ]]; then
-        if [ $opcao -ge 1 ] && [ $opcao -le 40 ]; then
-            menu_pagina1_opcao $opcao
-        elif [ $opcao -ge 41 ] && [ $opcao -le 88 ]; then
-            menu_pagina2_opcao $opcao
-        else
-            echo -e "$vermelho Opção inválida!$reset"
-            sleep 2
-        fi
-    else
-        echo -e "$vermelho Opção inválida!$reset"
-        sleep 2
-    fi
-    ;;
-esac
-done
-}
-
-# Menu Página 1
-menu_pagina1() {
-while true; do
-cabecalho
-versao
-echo -e "$branco PÁGINA 1 - Opções 1-40:$reset"
-echo ""
 echo -e "$verde [1]$reset - Instalar Docker"
 echo -e "$verde [2]$reset - Instalar Docker Compose"
 echo -e "$verde [3]$reset - Instalar Traefik"
@@ -561,27 +525,6 @@ echo -e "$verde [37]$reset - Instalar Cron"
 echo -e "$verde [38]$reset - Instalar Logrotate"
 echo -e "$verde [39]$reset - Instalar Fail2ban"
 echo -e "$verde [40]$reset - Instalar UFW"
-echo ""
-echo -e "$amarelo [P2]$reset - Página 2 | $amarelo[0]$reset - Voltar ao menu principal"
-echo ""
-echo -e "$amarelo Digite o número da opção desejada:$reset"
-read -p "Opção: " opcao
-
-case $opcao in
-P2|p2) menu_pagina2 ;;
-0) return ;;
-*) menu_pagina1_opcao $opcao ;;
-esac
-done
-}
-
-# Menu Página 2
-menu_pagina2() {
-while true; do
-cabecalho
-versao
-echo -e "$branco PÁGINA 2 - Opções 41-88:$reset"
-echo ""
 echo -e "$verde [41]$reset - Instalar Iptables"
 echo -e "$verde [42]$reset - Instalar OpenSSL"
 echo -e "$verde [43]$reset - Instalar Certbot"
@@ -630,22 +573,8 @@ echo -e "$verde [85]$reset - Desligar sistema"
 echo -e "$amarelo [87]$reset - Instalar WireGuard VPN"
 echo -e "$verde [88]$reset - Sair"
 echo ""
-echo -e "$amarelo [P1]$reset - Página 1 | $amarelo[0]$reset - Voltar ao menu principal"
-echo ""
 echo -e "$amarelo Digite o número da opção desejada:$reset"
 read -p "Opção: " opcao
-
-case $opcao in
-P1|p1) menu_pagina1 ;;
-0) return ;;
-*) menu_pagina2_opcao $opcao ;;
-esac
-done
-}
-
-# Executar opção da página 1
-menu_pagina1_opcao() {
-opcao=$1
 
 case $opcao in
 1) instalar_docker ;;
@@ -688,15 +617,6 @@ case $opcao in
 38) instalar_logrotate ;;
 39) instalar_fail2ban ;;
 40) instalar_ufw ;;
-*) echo -e "$vermelho Opção inválida!$reset"; sleep 2 ;;
-esac
-}
-
-# Executar opção da página 2
-menu_pagina2_opcao() {
-opcao=$1
-
-case $opcao in
 41) instalar_iptables ;;
 42) instalar_openssl ;;
 43) instalar_certbot ;;
@@ -746,7 +666,9 @@ case $opcao in
 88) sair ;;
 *) echo -e "$vermelho Opção inválida!$reset"; sleep 2 ;;
 esac
+done
 }
+
 
 ## // ## // ## // ## // ## // ## // ## // ## //## // ## // ## // ## // ## // ## // ## // ## // ##
 ## RM CLIQUE ##
@@ -1510,8 +1432,13 @@ else
     TRAEFIK_NETWORK="traefik"
 fi
 
-obter_dominio
-obter_subdominio
+# Pedir apenas o domínio
+echo -e "$amarelo Digite seu domínio (exemplo: meudominio.com):$reset"
+read -p "Domínio: " DOMINIO
+echo ""
+
+# Montar subdomínio automaticamente
+SUBDOMINIO="vpn.${DOMINIO}"
 
 echo -e "$amarelo Instalando WireGuard VPN...$reset"
 echo ""
@@ -1520,7 +1447,7 @@ echo ""
 mkdir -p /opt/wireguard
 cd /opt/wireguard
 
-# Criar docker-compose.yml para WireGuard
+# Criar docker-compose.yml para WireGuard com Traefik
 cat > docker-compose.yml << EOF
 version: '3.8'
 
@@ -1537,19 +1464,23 @@ services:
       - PGID=1000
       - TZ=America/Sao_Paulo
       - SERVERURL=${SUBDOMINIO}
-      - SERVERPORT=51820
+      - SERVERPORT=80
       - PEERS=1
       - PEERDNS=auto
       - INTERNAL_SUBNET=10.0.0.0
     volumes:
       - wireguard-config:/config
       - /lib/modules:/lib/modules:ro
-    ports:
-      - "51820:51820/udp"
     sysctls:
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       - ${TRAEFIK_NETWORK}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wireguard.rule=Host(\`${SUBDOMINIO}\`)"
+      - "traefik.http.routers.wireguard.tls=true"
+      - "traefik.http.routers.wireguard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wireguard.loadbalancer.server.port=80"
 
 volumes:
   wireguard-config:
@@ -1578,11 +1509,12 @@ if [ $COMPOSE_EXIT_CODE -eq 0 ]; then
     if docker ps | grep -q "wireguard"; then
         echo ""
         echo -e "$verde WireGuard VPN instalado com sucesso!$reset"
+        echo -e "$amarelo Acesse: https://${SUBDOMINIO}$reset"
         echo ""
         echo -e "$amarelo Configuração do cliente:$reset"
         echo -e "$branco 1. Baixe o arquivo de configuração do cliente em: /opt/wireguard/wireguard-config/peer1/peer1.conf$reset"
         echo -e "$branco 2. Importe o arquivo no seu cliente WireGuard$reset"
-        echo -e "$branco 3. Conecte-se à VPN usando o servidor: ${SUBDOMINIO}:51820$reset"
+        echo -e "$branco 3. Conecte-se à VPN usando: https://${SUBDOMINIO}$reset"
         echo ""
         echo -e "$amarelo QR Code para configuração móvel:$reset"
         echo -e "$branco Execute: docker exec wireguard /app/show-peer 1$reset"

@@ -61,7 +61,7 @@ bash <(curl -sSL setup.rmclique.com.br)
 
 ## 🛠️ Ferramentas Disponíveis
 
-O script principal inclui 86 opções de instalação:
+O script principal inclui 88 opções de instalação:
 
 ### 🐳 Containers e Orquestração
 - **Docker** - Plataforma de containerização
@@ -149,7 +149,7 @@ O script principal inclui 86 opções de instalação:
 - **Opção 79**: Remover Docker e sair do swarm
 - **Opção 80**: Instalar Pterodactyl Panel (Gerenciamento de servidores de jogos)
 - **Opção 81**: Instalar PufferPanel (Gerenciamento de servidores)
-- **Opção 87**: Instalar WireGuard VPN (VPN segura com Traefik)
+- **Opção 87**: Instalar WireGuard VPN (VPN segura)
 
 ## 🔒 Segurança
 

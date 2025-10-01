@@ -75,8 +75,9 @@ echo ""
 }
 
 obter_subdominio() {
-echo -e "$amarelo Digite o subdomínio (exemplo: painel):$reset"
+echo -e "$amarelo Digite o subdomínio (exemplo: vpn):$reset"
 read -p "Subdomínio: " SUBDOMINIO
+SUBDOMINIO="${SUBDOMINIO}.${DOMINIO}"
 echo ""
 }
 
@@ -485,7 +486,7 @@ versao
 echo -e "$branco Escolha uma opção:$reset"
 echo ""
 echo -e "$amarelo [P1]$reset - Página 1 (Opções 1-40)"
-echo -e "$amarelo [P2]$reset - Página 2 (Opções 41-86)"
+echo -e "$amarelo [P2]$reset - Página 2 (Opções 41-88)"
 echo ""
 echo -e "$amarelo Digite P1, P2 ou o número da opção desejada:$reset"
 read -p "Opção: " opcao
@@ -498,7 +499,7 @@ P2|p2) menu_pagina2 ;;
     if [[ $opcao =~ ^[0-9]+$ ]]; then
         if [ $opcao -ge 1 ] && [ $opcao -le 40 ]; then
             menu_pagina1_opcao $opcao
-        elif [ $opcao -ge 41 ] && [ $opcao -le 86 ]; then
+        elif [ $opcao -ge 41 ] && [ $opcao -le 88 ]; then
             menu_pagina2_opcao $opcao
         else
             echo -e "$vermelho Opção inválida!$reset"
@@ -579,7 +580,7 @@ menu_pagina2() {
 while true; do
 cabecalho
 versao
-echo -e "$branco PÁGINA 2 - Opções 41-86:$reset"
+echo -e "$branco PÁGINA 2 - Opções 41-88:$reset"
 echo ""
 echo -e "$verde [41]$reset - Instalar Iptables"
 echo -e "$verde [42]$reset - Instalar OpenSSL"
@@ -1519,12 +1520,6 @@ echo ""
 mkdir -p /opt/wireguard
 cd /opt/wireguard
 
-# Gerar chaves
-PRIVATE_KEY=$(wg genkey)
-PUBLIC_KEY=$(echo $PRIVATE_KEY | wg pubkey)
-SERVER_IP="10.0.0.1"
-CLIENT_IP="10.0.0.2"
-
 # Criar docker-compose.yml para WireGuard
 cat > docker-compose.yml << EOF
 version: '3.8'
@@ -1541,7 +1536,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Sao_Paulo
-      - SERVERURL=${SUBDOMINIO}.${DOMINIO}
+      - SERVERURL=${SUBDOMINIO}
       - SERVERPORT=51820
       - PEERS=1
       - PEERDNS=auto
@@ -1555,12 +1550,6 @@ services:
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       - ${TRAEFIK_NETWORK}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.wireguard.rule=Host(\`${SUBDOMINIO}.${DOMINIO}\`)"
-      - "traefik.http.routers.wireguard.tls=true"
-      - "traefik.http.routers.wireguard.tls.certresolver=letsencrypt"
-      - "traefik.http.services.wireguard.loadbalancer.server.port=80"
 
 volumes:
   wireguard-config:
@@ -1589,12 +1578,11 @@ if [ $COMPOSE_EXIT_CODE -eq 0 ]; then
     if docker ps | grep -q "wireguard"; then
         echo ""
         echo -e "$verde WireGuard VPN instalado com sucesso!$reset"
-        echo -e "$amarelo Acesse: https://${SUBDOMINIO}.${DOMINIO}$reset"
         echo ""
         echo -e "$amarelo Configuração do cliente:$reset"
         echo -e "$branco 1. Baixe o arquivo de configuração do cliente em: /opt/wireguard/wireguard-config/peer1/peer1.conf$reset"
         echo -e "$branco 2. Importe o arquivo no seu cliente WireGuard$reset"
-        echo -e "$branco 3. Conecte-se à VPN$reset"
+        echo -e "$branco 3. Conecte-se à VPN usando o servidor: ${SUBDOMINIO}:51820$reset"
         echo ""
         echo -e "$amarelo QR Code para configuração móvel:$reset"
         echo -e "$branco Execute: docker exec wireguard /app/show-peer 1$reset"

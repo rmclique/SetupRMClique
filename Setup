@@ -261,7 +261,7 @@ rm SetupRMClique
 fi
 
 # Baixa o script
-curl -sSL https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/SetupRMClique -o SetupRMClique
+curl -sSL https://raw.githubusercontent.com/rmclique/SetupRMClique/refs/heads/main/SetupRMClique -o SetupRMClique
 if [ $? -eq 0 ]; then
 echo "14/14 - [ OK ] - Baixando o script"
 # Executa o script baixado
